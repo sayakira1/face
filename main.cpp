@@ -50,13 +50,13 @@ cv::Rect dlibRectToOpencv(dlib::rectangle r)
 
 int main()
 {
-	Mat img = imread("users.jpg", IMREAD_COLOR);
-	if (img.empty())
+	Mat img = imread("users.jpg", IMREAD_COLOR); //객체생성
+	if (img.empty()) //오류시 종료
 	{
 		cerr << "img open fail" << endl;
 		return -1;
 	}
-	VideoCapture cap(1);
+	VideoCapture cap(1); //카메라
 	if (!cap.isOpened()) { cerr << "Camera open failed!" << endl; return -1; }
 	Net net = readNet(model, config);
 	if (net.empty()) { cerr << "Net open failed!" << endl; return -1; }
@@ -72,77 +72,76 @@ int main()
 	for (int i = 0; i < iFaceCount; i++)
 	{
 		full_object_detection faceLandmark = landmarkDetector(dlib_img, faceRects[i]);
-		drawPolygon(img, faceLandmark);
+		drawPolygon(img, faceLandmark); //랜드마크 그리기
 	}
 	
-	imshow("img", img);
+	imshow("img", img); //영상출력
 
-	Mat frame;
-	Mat sample1;
-	Mat sample2;
-	int x = 0;
-	int y = 0;
+	Mat frame; //객체생성
+	Mat sample1; //객체생성
+	Mat sample2; //객체생성
+	int x = 0; //객체생성
+	int y = 0; //객체생성
 
-	while (true) {
-		cap >> frame;
-		if (frame.empty()) break;
-		Mat blob = blobFromImage(frame, 1, Size(300, 300), Scalar(104, 177, 123));
+	while (true) { //반복
+		cap >> frame; //카메라
+		if (frame.empty()) break; //오류시 break
+		Mat blob = blobFromImage(frame, 1, Size(300, 300), Scalar(104, 177, 123)); //객체생성
 		net.setInput(blob);
-		Mat res = net.forward();
-		Mat detect(res.size[2], res.size[3], CV_32FC1, res.ptr<float>());
-		for (int i = 0; i < detect.rows; i++) {
+		Mat res = net.forward(); //객체생성
+		Mat detect(res.size[2], res.size[3], CV_32FC1, res.ptr<float>()); //객체생성
+		for (int i = 0; i < detect.rows; i++) { //반복문
 			float confidence = detect.at<float>(i, 2);
 			if (confidence < 0.5) break;
-			int x1 = cvRound(detect.at<float>(i, 3) * frame.cols);
-			int y1 = cvRound(detect.at<float>(i, 4) * frame.rows);
-			int x2 = cvRound(detect.at<float>(i, 5) * frame.cols);
-			int y2 = cvRound(detect.at<float>(i, 6) * frame.rows);
-			circle(frame, Point((x1 + x2) / 2, (y1 + y2) / 2), ((y2 - y1) + (x2 - x1)) / 3, Scalar(0, 255, 0), 1);
-			String label = format("user", confidence);
-			putText(frame, label, Point(x1, y1 - 15), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0, 255, 0));
+			int x1 = cvRound(detect.at<float>(i, 3) * frame.cols); //좌표
+			int y1 = cvRound(detect.at<float>(i, 4) * frame.rows); //좌표
+			int x2 = cvRound(detect.at<float>(i, 5) * frame.cols); //좌표
+			int y2 = cvRound(detect.at<float>(i, 6) * frame.rows); //좌표
+			circle(frame, Point((x1 + x2) / 2, (y1 + y2) / 2), ((y2 - y1) + (x2 - x1)) / 3, Scalar(0, 255, 0), 1); //얼굴 좌표에 원 그리기
+			String label = format("user", confidence); //문자열
+			putText(frame, label, Point(x1, y1 - 15), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0, 255, 0)); //글자출력
 			cv_image<bgr_pixel> dlib_img(frame);
 			std::vector<dlib::rectangle> faceRects = detector(dlib_img);
 			int iFaceCount = faceRects.size();
-			//imwrite("users.jpg", frame);
-			// draw
-			for (int i = 0; i < iFaceCount; i++)
+			//imwrite("users.jpg", frame); //유저얼굴 저장시 사용
+			for (int i = 0; i < iFaceCount; i++) //반복
 			{
 				full_object_detection faceLandmark = landmarkDetector(dlib_img, faceRects[i]);
-				drawPolygon(frame, faceLandmark);
+				drawPolygon(frame, faceLandmark); //랜드마크 그리기
 			}
-			sample1 = frame(Rect(Point(x1 - 10, y1 - 10), Point(x2 + 10, y2 + 10)));
-			sample2 = img(Rect(Point(x1 - 10, y1 - 10), Point(x2 + 10, y2 + 10)));
+			sample1 = frame(Rect(Point(x1 - 10, y1 - 10), Point(x2 + 10, y2 + 10))); //얼굴 크기 조정
+			sample2 = img(Rect(Point(x1 - 10, y1 - 10), Point(x2 + 10, y2 + 10))); //얼굴 크기 조정
 
 		}
-		for (int i = 0; i < sample1.rows; i++)
+		for (int i = 0; i < sample1.rows; i++) //반복
 		{
-			for (int j = 0; j < sample1.cols; j++)
+			for (int j = 0; j < sample1.cols; j++) //반복
 			{
-				if (sample2.at<Vec3b>(j, i)[1] == 255)
+				if (sample2.at<Vec3b>(j, i)[1] == 255) //sample2 색상이 (0,255,0)일 경우
 				{
-					y++;
-					if (sample1.at<Vec3b>(j, i)[1] == sample2.at<Vec3b>(j, i)[1])
+					y++; //증가
+					if (sample1.at<Vec3b>(j, i)[1] == sample2.at<Vec3b>(j, i)[1]) //두 생상이 같을 경우
 					{
-						x++;
+						x++; //증가
 					}
 				}
 			}
 		}
-		double e = (double)x / (double)y * 100.0;
-		String ps = format("%4.3f", e);
-		putText(frame, ps, Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0, 255, 0));
-		imshow("sample1", sample1);
-		imshow("sample2", sample2);
-		imshow("frame", frame);
-		if (e>70.0) break;
-		else
+		double e = (double)x / (double)y * 100.0; //인식률
+		String ps = format("%4.3f", e); //문자열
+		putText(frame, ps, Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0, 255, 0)); //글자출력
+		imshow("sample1", sample1); //영상출력
+		imshow("sample2", sample2); //영상출력
+		imshow("frame", frame); //영상출력
+		if (e>70.0) break; //인식률70%이상일 경우 break
+		else //70이하일 경우 계수 초기화
 		{
-			x = 0;
-			y = 0;
+			x = 0; //대입
+			y = 0; //대입
 		}
-		if (waitKey(1) == 27) break;
+		if (waitKey(1) == 27) break; //esc입력시 break
 	}
 	
 	destroyAllWindows();
-	return 0;
+	return 0; //종료
 }
